@@ -17,7 +17,7 @@
         <description format="text/plain">Provides a default confirmation workflow for timesheet hours.</description>
         <maturity>0</maturity>
 
-        <provides url="intranet-timesheet2-workflow" version="4.0.0.0.0"/>
+        <provides url="intranet-timesheet2-workflow" version="4.0.1.0.1"/>
         <requires url="acs-workflow" version="3.2"/>
         <requires url="intranet-core" version="3.2"/>
         <requires url="intranet-timesheet2" version="3.2"/>
