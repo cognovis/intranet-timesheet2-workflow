@@ -13,7 +13,7 @@
 # -----------------------------------------------------------
 
 if {[info exists task]} {
-
+    
     # Workflow-Panel Head:
     # This code is called when this page is embedded in a WF "Panel"
 
@@ -95,7 +95,7 @@ set object_name [db_string name "select acs_object__name(:absence_id)"]
 
 set params [list \
 		[list absence_id $absence_id] \
-		[list return_url $return_url] \
+		[list return_url [util_get_current_url]] \
 		[list enable_master_p 0] \
 		[list form_mode display] \
 		[list panel_p 1] \
