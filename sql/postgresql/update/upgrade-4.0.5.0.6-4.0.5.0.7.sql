@@ -27,7 +27,7 @@ begin
 		null,								-- context_id
 		'intranet-timesheet2-workflow',					-- package_name
 		'reporting-timesheet-unsubmitted-hours',			-- label
-		'Timesheet - Unsubmitted and Unconfirmed Hours',		-- name
+		'Timesheet Workflow - Unconfirmed Hours',			-- name
 		'/intranet-timesheet2-workflow/reports/unsubmitted-hours.tcl?',	-- url
 		180,								-- sort_order
 		v_parent_menu,							-- parent_menu_id
