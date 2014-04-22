@@ -95,12 +95,9 @@ set object_name [db_string name "select acs_object__name(:absence_id)"]
 
 set params [list \
 		[list absence_id $absence_id] \
-		[list return_url [util_get_current_url]] \
-		[list enable_master_p 0] \
-		[list form_mode display] \
-		[list panel_p 1] \
+		[list return_url [util_get_current_url]]
 ]
-set html [ad_parse_template -params $params "/packages/intranet-timesheet2/www/absences/new"]
+set html [ad_parse_template -params $params "/packages/intranet-timesheet2/lib/absence-info"]
 
 
 
