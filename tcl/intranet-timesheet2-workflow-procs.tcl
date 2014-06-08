@@ -386,3 +386,178 @@ ad_proc -public im_timesheet_approval_component {
     set result [ad_parse_template -params $params "/packages/intranet-timesheet2/lib/timesheet-approval"]
     return [string trim $result]
 }
+
+ad_proc im_timesheet2_workflow_unsubmitted_hours_user_notification_sweeper {
+    {-start_date ""}
+    {-debug_p 0}
+} {
+    Sweeper process (executed by "cron" type of function, so it doesn't
+    have access to ad_form and other functions) that checks if users
+    have logged hours that are not yet submitted to a timesheet workflow.
+} {
+    ns_log Notice "im_timesheet2_workflow_unsubmitted_hours_user_notification_sweeper: Starting"
+
+    set system_url [ad_parameter -package_id [ad_acs_kernel_id] SystemURL "" ""]
+    set system_owner [ad_parameter -package_id [ad_acs_kernel_id] SystemOwner "" [ad_system_owner]]
+
+    set start_date_sql ""
+    if {"" != $start_date} {
+       set start_date_sql "and h.day >= :start_date::date"
+    }
+
+    set limit_to_user_ids [parameter::get_from_package_key -package_key intranet-timesheet2-workflow -parameter "UnsubmittedHoursUserNotificationLimitToUserID" -default "624"]
+    set user_id_sql ""
+    if {"" != $limit_to_user_ids} {
+	set user_id_sql "and h.user_id in ([join $limit_to_user_ids ","])"
+    }
+
+    # Store all unconfirmed hours into some hash array.
+    set hour_sql "
+	select	h.*,
+		p.email,
+		pe.first_names,
+		to_char(h.day, 'YYYY-MM-01') as hour_month
+	from	im_hours h,
+		parties p,
+		persons pe
+	where	h.user_id = p.party_id and
+		h.user_id = pe.person_id and
+		h.conf_object_id is null
+		$start_date_sql
+		$user_id_sql
+	order by
+		h.user_id, h.day
+    "
+    db_foreach hour_sql $hour_sql {
+	# Sum up unconfirmed hours per month
+	set key "$user_id-$hour_month"
+	set h 0
+	if {[info exists user_hour_month_hash($key)]} { set h $user_hour_month_hash($key) }
+	set h [expr $h + $hours]
+	set user_hour_month_hash($key) $h
+
+	# Sum up unconfirmed hours total
+	set key "$user_id"
+	set h 0
+	if {[info exists user_hour_hash($key)]} { set h $user_hour_hash($key) }
+	set h [expr $h + $hours]
+	set user_hour_hash($key) $h
+
+	# Store auxillary variables in their hashes
+	set user_email_hash($user_id) $email
+	set user_first_names_hash($user_id) $first_names
+    }
+
+    set user_hour_month_hash_keys [lsort [array names user_hour_month_hash]]
+
+    # Send out notification emails
+    foreach u [array names user_email_hash] {
+
+	set email $user_email_hash($u)
+	set first_names $user_first_names_hash($u)
+	set num_hours $user_hour_hash($u)
+	
+	# Build a list of links for submitting hours
+	set link_list ""
+	foreach key $user_hour_month_hash_keys {
+	    set user_hour_month_hash_uid [lindex [split $key "-"] 0]
+	    set user_hour_month_hash_date [join [lrange [split $key "-"] 1 end] "-"]
+#	    ad_return_complaint 1 "key=$key - $user_hour_month_hash_uid - $user_hour_month_hash_date"
+
+	    if {$user_hour_month_hash_uid == $u} {
+		append link_list "        [export_vars -base "$system_url/intranet-timesheet2/hours/index" {{date $user_hour_month_hash_date}}]\n"
+	    }
+	}
+
+	set locale [lang::user::locale -user_id $u]
+	set subject [lang::message::lookup $locale intranet-timesheet2-workflow.Notification_Subject "Notification: Unsubmitted Hours"]
+	set message [lang::message::lookup $locale intranet-timesheet2-workflow.Notification_Message \
+   		"Dear %first_names%,\n\nThere are %num_hours% unsubmitted hours in your time sheet.\nPlease visit the following links and submit your hours.\n\n%link_list%\n\nThis message has been sent out automatically by \]project-open\[."]
+
+	if {$debug_p} {
+	    ad_return_complaint 1 "<pre>email=$email<br>system_owner=$system_owner<br>subject=$subject<br>message=$message<br>"
+	}  else {
+
+	    if [catch {
+		ns_sendmail $email $system_owner $subject $message
+	    } errmsg] {
+		ns_log Error "im_timesheet2_workflow_unsubmitted_hours_user_notification_sweeper: Error sending to \"$email\": $errmsg"
+	    } else {
+		ns_log Notice "im_timesheet2_workflow_unsubmitted_hours_user_notification_sweeper: Sent mail to $email\n"
+	    }
+	}
+
+    }
+
+    ns_log Notice "im_timesheet2_workflow_unsubmitted_hours_user_notification_sweeper: Finished"
+}
+
+
+ad_proc im_timesheet_conf_object_notify_supervisor {
+    -modified_projects_tuples
+    -user_id:required
+    {-debug_p 0}
+} {
+    Notifiy supervisor if hours are touched in the past.
+} {
+    ns_log Notice "im_timesheet_conf_object_notify_supervisor: Starting"
+
+    # Hash map project_id -> list of julian dates
+    array set modified_projects_hash $modified_projects_tuples
+    array set ansi_hash {}
+    foreach pid [array names modified_projects_hash] {
+	set julian_list $modified_projects_hash($pid)
+	foreach j $julian_list {
+	    set ansi [im_date_julian_to_ansi $j]
+	    set ansi_hash($ansi) $ansi
+	}
+    }
+
+    # Sorted unique list of dates where hours were modified
+    set ansi_list [lsort -unique [array names ansi_hash]]
+
+    # ToDo: 
+    # - Connect to notification mechanism
+    set user_id $user_id
+    set supervisor_email [db_string supervisor "select im_email_from_user_id(supervisor_id) from im_employees where employee_id = :user_id" -default ""]
+    if {"" != $supervisor_email} {
+
+	# Determine the sender address
+	set sender_email [ad_parameter -package_id [ad_acs_kernel_id] SystemOwner "" [ad_system_owner]]
+	set user_name [db_string user_name "select im_name_from_user_id(:user_id) from dual" -default "unknown"]
+	set subject [lang::message::lookup "" intranet-timesheet2-workflow.User_Modified_Past_Hours "User %user_name% Modified Past Hours"]
+
+	set project_sql "
+		select distinct
+			main_p.project_name
+		from	im_projects sub_p,
+			im_projects main_p
+		where	sub_p.project_id in ([join [array names modified_projects_hash] ","]) and
+			main_p.tree_sortkey = tree_root_key(sub_p.tree_sortkey)
+	"
+	set project_list_txt ""
+	db_foreach projects $project_sql {
+	    append project_list_txt "- $project_name\n"
+	}
+
+	set ansi_list_txt ""
+	foreach ansi $ansi_list {
+	    append ansi_list_txt "- $ansi\n"
+	}
+
+	set message [lang::message::lookup "" intranet-timesheet2-workflow.User_Modified_Past_Hours_message "
+User %user_name% has modified hours in the following projects:\n
+%project_list_txt%
+\non the following dates:\n
+%ansi_list_txt%
+"]
+
+	if [catch {
+	    ns_sendmail $supervisor_email $sender_email $subject $message
+	} errmsg] {
+	    ns_log Error "im_timesheet_conf_object_delete: Error sending to \"$supervisor_email\": $errmsg"
+	} else {
+	    ns_log Notice "im_timesheet_conf_object_delete: Sent mail to $email\n"
+	}
+    }
+}
