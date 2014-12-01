@@ -413,7 +413,8 @@ set class "rowodd"
 db_foreach sql $sql {
 
     set hours_pretty [im_report_format_number $hours $output_format $number_locale]
-    regsub -all {0} $user_day_month "" user_day_month_short
+    regsub -all {\-0} $user_day_month "" user_day_month_short
+#    set user_day_month_short $user_day_month
     set conf_object_name $conf_object_l10n
     if {"" == $conf_id} { set conf_object_name "" }
     switch [string tolower $conf_status] {
@@ -460,6 +461,8 @@ db_foreach sql $sql {
 
     im_report_update_counters -counters $counters
 
+    set hours_monthly_sum [expr round(100.0 * $hours_monthly_sum) / 100.0]
+    set hours_subtotal [expr round(100.0 * $hours_subtotal) / 100.0]
     set hours_subtotal_pretty [im_report_format_number $hours_subtotal $output_format $number_locale]
     set hours_monthly_sum_pretty [im_report_format_number $hours_monthly_sum $output_format $number_locale]
     
