@@ -364,11 +364,17 @@ ad_proc eval_wf_start_date {
 }
 
 ad_proc -public im_timesheet_approval_component {
-    -user_id:required
+    {-user_id ""}
+    {-project_id ""}
 } {
     Returns a HTML component showing the vacations
     for the user
 } {
+
+    if { ($user_id eq {} && $project_id eq {}) || ($user_id ne {} && $project_id ne {}) } {
+        error "im_timesheet_approval_component requires a user_id or (exclusive or) a project_id"
+    }
+
     set current_user_id [ad_get_user_id]
     # This is a sensitive field, so only allows this for the user himself
     # and for users with HR permissions.
@@ -380,6 +386,7 @@ ad_proc -public im_timesheet_approval_component {
 
     set params [list \
 		    [list user_id $user_id] \
+		    [list project_id $project_id] \
 		    [list return_url [im_url_with_query]] \
     ]
 
