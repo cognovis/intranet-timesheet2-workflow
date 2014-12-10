@@ -1,3 +1,6 @@
+# user_id:integer
+# project_id:integer
+
 # ----------------------------------------------------------------------
 # Inbox for "Business Objects"
 # ----------------------------------------------------------------------
@@ -118,6 +121,17 @@ append table_header_html "</tr>\n"
 # SQL Query
 
 # Get the list of all "open" (=enabled or started) tasks with their assigned users
+set where_clause ""
+if { $user_id ne {} } {
+    set where_clause "and (wta.party_id = :user_id or o.creation_user = :user_id)"
+} else {
+    set sql "select object_id_two from acs_rels where object_id_one=:project_id"
+    set project_member_ids [db_list project_members $sql]
+    if { $project_member_ids ne {} } {
+        set where_clause "and wta.party_id in ([template::util::tcl_to_sql_list $project_member_ids])"
+    }
+}
+
 set tasks_sql "
 	select
 		o.object_id,
@@ -130,21 +144,23 @@ set tasks_sql "
 		tr.transition_name,
 		t.holding_user,
 		t.task_id,
-                h.hours
+        wta.party_id as assignee_id,
+        h.hours
 	from
 		acs_objects o,
 		wf_cases ca left outer join (select sum(hours) as hours, conf_object_id as task_id from im_hours group by conf_object_id) h on h.task_id = ca.object_id,
 		wf_transitions tr,
 		wf_tasks t,
-                wf_task_assignments wta
+        wf_task_assignments wta
 	where
-                wta.task_id = t.task_id
-                and (wta.party_id = :user_id or o.creation_user = :user_id)
+        wta.task_id = t.task_id
 		and o.object_id = ca.object_id
 		and ca.case_id = t.case_id
 		and t.state in ('enabled', 'started')
 		and t.transition_key = tr.transition_key
 		and t.workflow_key = tr.workflow_key
+        and t.workflow_key = 'timesheet_approval_wf'
+        ${where_clause}
     "
 
 if {"" != $order_by_clause} {
@@ -203,15 +219,15 @@ db_foreach tasks $tasks_sql {
     set object_url "[im_biz_object_url $object_id "view"]&return_url=[ns_urlencode $return_url]"
     set owner_url [export_vars -base "/intranet/users/view" {return_url {user_id $owner_id}}]
 
-    set approve_url [export_vars -base "/[im_workflow_url]/task" -url {{attributes.confirm_hours_are_the_logged_hours_ok_p t} {action.finish "Task done"} task_id return_url}]
-    set deny_url [export_vars -base "/[im_workflow_url]/task" -url {{attributes.confirm_hours_are_the_logged_hours_ok_p f} {action.finish "Task done"} task_id return_url}]
+    set approve_url [export_vars -base "/[im_workflow_url]/task" -url {{attributes.confirm_hours_are_the_logged_hours_ok_p t} {action.finish "Task done"} {autoprocess_p 1} task_id return_url}]
+    set deny_url [export_vars -base "/[im_workflow_url]/task" -url {{attributes.confirm_hours_are_the_logged_hours_ok_p f} {action.finish "Task done"} {autoprocess_p 1} task_id return_url}]
 
     # if this is the creator viewing it, prevent him from approving it
     # himself
-    if {$owner_id == $user_id} {
-	set approve_url [export_vars -base "/[im_workflow_url]/task" {return_url task_id}]
-	set next_action_l10n "View"
-	set deny_url ""
+    if {$owner_id == $user_id && $assignee_id != $user_id} {
+        set approve_url [export_vars -base "/[im_workflow_url]/task" {return_url task_id}]
+        set next_action_l10n "View"
+        set deny_url ""
     }
 
 
