@@ -24,7 +24,7 @@ begin
         null,                               -- creation_ip
         null,                               -- context_id
         'Project Approval Component',       -- plugin_name
-        'intranet-timesheet2',              -- package_name
+        'intranet-timesheet2-workflow',              -- package_name
         'right',                            -- location
         '/intranet/projects/view',          -- page_url
         null,                               -- view_name

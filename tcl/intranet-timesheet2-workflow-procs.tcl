@@ -390,7 +390,7 @@ ad_proc -public im_timesheet_approval_component {
 		    [list return_url [im_url_with_query]] \
     ]
 
-    set result [ad_parse_template -params $params "/packages/intranet-timesheet2/lib/timesheet-approval"]
+    set result [ad_parse_template -params $params "/packages/intranet-timesheet2-workflow/lib/timesheet-approval"]
     return [string trim $result]
 }
 
