@@ -8,10 +8,6 @@
 -- @author frank.bergmann@project-open.com
 
 
-\i workflow-timesheet_approval_wf-create.sql
-\i workflow-vacation_approval_wf-create.sql
-
-
 -----------------------------------------------------------
 -- Workflow Confirmation Object
 --
@@ -1487,3 +1483,6 @@ begin
 end;$BODY$
   LANGUAGE 'plpgsql' VOLATILE;
 
+\i workflow-timesheet_approval_wf-create.sql
+\i workflow-vacation_approval_wf-create.sql
+\i workflow-hr_vacation_approval_wf-create.sql
