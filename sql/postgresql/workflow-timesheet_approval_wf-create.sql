@@ -127,7 +127,7 @@ drop function inline_0 ();
 	select workflow__add_role (
          'timesheet_approval_wf',
          'modify',
-         '#intranet-timesheet2-workflow.Modify#',
+         '#intranet-timesheet2-workflow.Restart#',
          1
     );
 
@@ -142,7 +142,7 @@ drop function inline_0 ();
 	select workflow__add_transition (
          'timesheet_approval_wf',
          'modify',
-         '#intranet-timesheet2-workflow.Modify#',
+         '#intranet-timesheet2-workflow.Restart#',
          'modify',
          1,
          'user'
