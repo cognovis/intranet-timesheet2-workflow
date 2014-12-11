@@ -221,15 +221,19 @@ db_foreach tasks $tasks_sql {
 
     set approve_url [export_vars -base "/[im_workflow_url]/task" -url {{attributes.confirm_hours_are_the_logged_hours_ok_p t} {action.finish "Task done"} {autoprocess_p 1} task_id return_url}]
     set deny_url [export_vars -base "/[im_workflow_url]/task" -url {{attributes.confirm_hours_are_the_logged_hours_ok_p f} {action.finish "Task done"} {autoprocess_p 1} task_id return_url}]
+    set deny_button "<a class=button href=$deny_url>Deny</a>"
 
     # if this is the creator viewing it, prevent him from approving it
     # himself
     if {$owner_id == $user_id && $assignee_id != $user_id} {
         set approve_url [export_vars -base "/[im_workflow_url]/task" {return_url task_id}]
         set next_action_l10n "View"
-        set deny_url ""
+	set deny_button ""
     }
 
+    if {$owner_id == $user_id} {
+	set deny_button ""
+    }
 
     
     # Don't show the "Action" link if the object is mine...
