@@ -225,8 +225,8 @@ db_foreach tasks $tasks_sql {
 
     # redirect the approve / deny buttons to a page which quickly checks if the user is assigned to the task 
     # and if not, assign the user to the workflow task before doing the actual redirect to the approve/deny page
-    set approve_url [export_vars -base "/intranet-timesheet2-workflow/wf/auto-assign" -url [list task_id [list continue_url $approve_url]]]
-    set deny_url [export_vars -base "/intranet-timesheet2-workflow/wf/auto-assign" -url [list task_id [list continue_url $deny_url]]]
+    set approve_url [export_vars -base "/intranet-timesheet2-workflow/wf/auto-assign" -url [list project_id task_id [list continue_url $approve_url]]]
+    set deny_url [export_vars -base "/intranet-timesheet2-workflow/wf/auto-assign" -url [list project_id task_id [list continue_url $deny_url]]]
 
     # if this is the creator viewing it, prevent him from approving it
     # himself

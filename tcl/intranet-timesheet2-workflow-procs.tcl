@@ -380,9 +380,16 @@ ad_proc -public im_timesheet_approval_component {
     # and for users with HR permissions.
 
     set read_p 0
-    if {$user_id == $current_user_id} { set read_p 1 }
-    if {[im_permission $current_user_id view_hr]} { set read_p 1 }
-    if {!$read_p} { return "" }
+
+    if { $user_id ne {} && $user_id eq $current_user_id } { 
+        set read_p 1
+    } elseif { [im_permission $current_user_id view_hr] } {
+        set read_p 1
+    } elseif { [im_biz_object_admin_p $current_user_id $project_id] } {
+        set read_p 1
+    }
+
+    if { !$read_p } { return "" }
 
     set params [list \
 		    [list user_id $user_id] \
