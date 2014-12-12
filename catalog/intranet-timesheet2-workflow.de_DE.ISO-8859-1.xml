@@ -25,6 +25,7 @@
   <msg key="Ready_to_Confirmed">Bereit zur Bestätigung</msg>
   <msg key="Ready_to_Deleted">Bereit zum Löschen</msg>
   <msg key="Ready_to_Enter_Hours">Bereit zum eintragen von Stunden</msg>
+  <msg key="Restart">Neu Starten</msg>
   <msg key="Review_Hours">Stunden prüfen</msg>
   <msg key="Timesheet">Bestätigungsobjekt</msg>
   <msg key="Timesheet_1">Bestätigungsobjekte</msg>

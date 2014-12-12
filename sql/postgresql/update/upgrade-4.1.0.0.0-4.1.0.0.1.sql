@@ -48,4 +48,3 @@ $$ LANGUAGE 'plpgsql';
 
 SELECT inline_0 ();
 DROP FUNCTION inline_0 ();
-

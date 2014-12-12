@@ -193,14 +193,14 @@ drop function inline_0 ();
 	select workflow__add_arc (
          'vacation_approval_wf',
          'approve',
-         'start',
+         'before_deleted',
          'out',
          '#',
          '',
          'Rejected'
 	);
 
-        
+
 
 	select workflow__add_arc (
          'vacation_approval_wf',
