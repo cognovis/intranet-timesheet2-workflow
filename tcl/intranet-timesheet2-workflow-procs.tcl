@@ -381,10 +381,12 @@ ad_proc -public im_timesheet_approval_component {
 
     set read_p 0
 
-    if { $user_id ne {} && $user_id eq $current_user_id } { 
-        set read_p 1
-    } elseif { [im_permission $current_user_id view_hr] } {
-        set read_p 1
+    if { $user_id ne {}} {
+        if {$user_id eq $current_user_id } { 
+            set read_p 1
+        } elseif { [im_permission $current_user_id view_hr] } {
+            set read_p 1
+        }
     } elseif { [im_biz_object_admin_p $current_user_id $project_id] } {
         set read_p 1
     }

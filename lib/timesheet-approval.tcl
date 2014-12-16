@@ -122,15 +122,24 @@ append table_header_html "</tr>\n"
 
 # Get the list of all "open" (=enabled or started) tasks with their assigned users
 set where_clause ""
+set extra_from ""
 if { $user_id ne {} } {
     set where_clause "and (wta.party_id = :user_id or o.creation_user = :user_id)"
-} else {
-    set sql "select object_id_two from acs_rels where object_id_one=:project_id"
-    set project_member_ids [db_list project_members $sql]
-    if { $project_member_ids ne {} } {
-        set where_clause "and wta.party_id in ([template::util::tcl_to_sql_list $project_member_ids])"
-    }
+} 
+
+if {$project_id ne ""} {
+    set where_clause "and (select conf_status_id from im_timesheet_conf_objects where conf_id = h.task_id) = 17000
+    and h.project_id in (SELECT subchild.project_id
+from im_projects subparent,
+im_projects subchild
+where
+subchild.tree_sortkey
+between subparent.tree_sortkey
+and tree_right(subparent.tree_sortkey)
+and subchild.project_type_id != 100 
+and subparent.project_id = :project_id)"
 }
+
 
 set tasks_sql "
 	select
@@ -148,7 +157,7 @@ set tasks_sql "
         h.hours
 	from
 		acs_objects o,
-		wf_cases ca left outer join (select sum(hours) as hours, conf_object_id as task_id from im_hours group by conf_object_id) h on h.task_id = ca.object_id,
+		wf_cases ca left outer join (select sum(hours) as hours, conf_object_id as task_id,project_id from im_hours group by conf_object_id, project_id) h on h.task_id = ca.object_id,
 		wf_transitions tr,
 		wf_tasks t,
         wf_task_assignments wta
