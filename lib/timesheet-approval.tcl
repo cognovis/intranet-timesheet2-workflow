@@ -136,7 +136,6 @@ where
 subchild.tree_sortkey
 between subparent.tree_sortkey
 and tree_right(subparent.tree_sortkey)
-and subchild.project_type_id != 100 
 and subparent.project_id = :project_id)"
 }
 
